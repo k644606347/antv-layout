@@ -273,6 +273,7 @@ export class DagreLayout extends Base {
       edgeLabelSpace: self.edgeLabelSpace,
       keepNodeOrder: Boolean(!!self.nodeOrder),
       nodeOrder: self.nodeOrder,
+      debugTiming: true
     });
 
     const dBegin = [0, 0];
