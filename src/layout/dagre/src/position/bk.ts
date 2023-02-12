@@ -122,8 +122,21 @@ export const findType2Conflicts = (g: Graph, layering?: string[][]) => {
     const scanned = new Map<string, boolean>();
 
     south?.forEach((v: string, southLookahead: number) => {
-      if (g.node(v)?.dummy === "border") {
-        const predecessors = g.predecessors(v) || [];
+      const isBorder = g.node(v)?.dummy === "border";
+      const scanParams: Parameters<typeof scan> = 
+        isBorder ?
+          [south, southPos, southLookahead, prevNorthPos, nextNorthPos] :
+          [south, southPos, south.length, nextNorthPos, north.length];
+      
+      // south数组可能很大，不适合做key
+      const scannedKey = JSON.stringify(scanParams.slice(1));
+
+      if (scanned.get(scannedKey)) {
+        return;
+      };
+
+      if (isBorder) {
+          const predecessors = g.predecessors(v) || [];
         if (predecessors.length) {
           nextNorthPos = g.node(predecessors[0]!)!.order as number;
           scanIfNeeded(
