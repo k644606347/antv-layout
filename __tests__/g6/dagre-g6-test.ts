@@ -366,7 +366,7 @@ describe("dagre layout", () => {
   it("increment layout", () => {
     const layout = new DagreLayout();
 
-    const mockData = mock(3);
+    const mockData = mock(1);
     console.log('mockData', mockData)
     let originGraphData = mockData;
     let addGraphData = {
@@ -378,7 +378,8 @@ describe("dagre layout", () => {
       rankdir: "LR",
     });
     layout.layout(originGraphData as any);
-    const originGraph = JSON.parse(JSON.stringify(originGraphData));
+    // const originGraph = JSON.parse(JSON.stringify(originGraphData));
+    const originGraph = {};
     // layout.layout(originGraph);
     // console.log(JSON.stringify(originGraph));
 
@@ -396,13 +397,21 @@ describe("dagre layout", () => {
       const btn1 = document.createElement("button");
       btn1.textContent = 'rerender';
       btn1.addEventListener('click', () => {
-        const newGraph = {
-          nodes: [...originGraphData.nodes, ...addGraphData.nodes],
-          edges: [...originGraphData.edges, ...addGraphData.edges],
-        };
-        graph.read(newGraph);
-      })
+        const layout = new DagreLayout();
+        layout.updateCfg({
+          rankdir: "LR",
+        });
+        layout.layout(originGraphData as any);
+        // const newGraph = {
+        //   nodes: [...originGraphData.nodes, ...addGraphData.nodes],
+        //   edges: [...originGraphData.edges, ...addGraphData.edges],
+        // };
+        // graph.read(newGraph);
+      }, false)
       document.body.appendChild(btn1);
+
+      console.time('G6 layout');
+      console.time('G6 render');
       const graph = new G6.Graph({
         container: div,
         // width: 500,
@@ -415,9 +424,14 @@ describe("dagre layout", () => {
         layout: {
           type: 'dagre',
           workerEnabled: true,
+          // workerScriptURL: 'http://127.0.0.1:1234/layout.min.js',
           rankdir: 'LR',
         },
         defaultEdge: {
+          // type: 'polyline',
+          // routeConfig: {
+          //   simple: true,
+          // },
           style: {
             endArrow: true,
           },
@@ -426,22 +440,13 @@ describe("dagre layout", () => {
 
       graph.data(originGraph);
       graph.render();
+      graph.on('afterlayout', () => {
+        console.timeEnd('G6 layout');
+      })
+      graph.on('afterrender', () => {
+        console.timeEnd('G6 render');
+      })
     // }
-
-    graph.on('canvas:click', e => {
-
-      const newGraph = {
-        nodes: [...originGraphData.nodes, ...addGraphData.nodes],
-        edges: [...originGraphData.edges, ...addGraphData.edges],
-      };
-  
-      layout.updateCfg({
-        preset: originGraph,
-      });
-      layout.layout(newGraph as any);
-      graph.changeData(newGraph)
-      // console.log(JSON.stringify(newGraph));
-    })
 
     // {
     //   const div = document.createElement("div");

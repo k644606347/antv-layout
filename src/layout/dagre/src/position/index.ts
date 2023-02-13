@@ -25,9 +25,7 @@ const positionY = (g: Graph) => {
 };
 
 const positionX = (g: Graph) => {
-  debugger
   const layering = buildLayerMatrix(g);
-  debugger
   const conflicts = Object.assign(
     findType1Conflicts(g, layering),
     findType2Conflicts(g, layering) // TODO: position performance
@@ -72,13 +70,9 @@ const positionX = (g: Graph) => {
 };
 
 const position = (g: Graph) => {
-  debugger;
   const ng = asNonCompoundGraph(g);
-  debugger;
   positionY(ng);
-  debugger;
   const xs = positionX(ng);
-  debugger;
   Object.keys(xs)?.forEach((key: string) => {
     ng.node(key)!.x = xs[key];
   });
