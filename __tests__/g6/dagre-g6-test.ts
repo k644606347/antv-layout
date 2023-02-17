@@ -366,7 +366,7 @@ describe("dagre layout", () => {
   it("increment layout", () => {
     const layout = new DagreLayout();
 
-    const mockData = mock(1);
+    const mockData = mock(5);
     console.log('mockData', mockData)
     let originGraphData = mockData;
     let addGraphData = {
@@ -374,12 +374,12 @@ describe("dagre layout", () => {
       edges: [],
     };
 
-    layout.updateCfg({
-      rankdir: "LR",
-    });
-    layout.layout(originGraphData as any);
-    // const originGraph = JSON.parse(JSON.stringify(originGraphData));
-    const originGraph = {};
+    // layout.updateCfg({
+    //   rankdir: "LR",
+    // });
+    // layout.layout(originGraphData as any);
+    const originGraph = JSON.parse(JSON.stringify(originGraphData));
+    // const originGraph = {};
     // layout.layout(originGraph);
     // console.log(JSON.stringify(originGraph));
 
@@ -422,14 +422,19 @@ describe("dagre layout", () => {
           default: ["drag-node", "drag-canvas", 'scroll-canvas'],
         },
         layout: {
-          type: 'dagre',
-          workerEnabled: true,
+          type: 'random',
+          width: 200,
+          height: 200,
+          // radial: true,
+          // workerEnabled: true,
+          // workerScriptURL: 'https://s2-11773.kwimgs.com/kos/nlav11773/lib/layout/0.3.2/layout.min.js',
+          // workerScriptURL: 'https://s2-11773.kwimgs.com/kos/nlav11773/temp/layout.min.js',
           // workerScriptURL: 'http://127.0.0.1:1234/layout.min.js',
-          rankdir: 'LR',
+          // rankdir: 'LR',
         },
         defaultEdge: {
           // type: 'polyline',
-          // routeConfig: {
+          // routeCfg: {
           //   simple: true,
           // },
           style: {

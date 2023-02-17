@@ -3,12 +3,14 @@ export function mock(maxDepth = 5) {
     const rootId = 'mock_root';
     const mockNodesMap = new WeakMap();
 
-
-    let nodeCount = 0;
+    const nodeCountMap: Record<string, number> = {};
     function genNodeId(nodeDepth: number) {
-        const date = new Date();
-        return 'depth_' + String(nodeDepth) + '_' + (nodeCount++) + date.getMinutes() + ':' + date.getSeconds();
+        if (typeof nodeCountMap[nodeDepth] !== 'number') {
+            nodeCountMap[nodeDepth] = 0;
+        }
+        return 'depth_' + String(nodeDepth) + '_' + (nodeCountMap[nodeDepth]++);
     }
+
 
     function makeMock(sources: string[], curDepth = 1) {
         let edges: EdgeConfig[] = [];
@@ -32,19 +34,20 @@ export function mock(maxDepth = 5) {
             }
 
             let maxChildCount: number;
-            if (curDepth <= 1) {
-                maxChildCount = 5;
-            } else if (curDepth === 2) {
-                maxChildCount = 300;
-            } else if (curDepth < 10) {
-                maxChildCount = 2;
-            } else if (curDepth === 10) {
-                maxChildCount = 5;
+          if (curDepth <= 1) {
+            maxChildCount = 5;
+          } else if (curDepth === 2) {
+            maxChildCount = 20;
+          } else if (curDepth < 10) {
+            maxChildCount = 2;
+          } else if (curDepth === 10) {
+            maxChildCount = 5;
             // } else if (curDepth <= 30) {
             //     maxChildCount = 2;
-            } else {
-                maxChildCount = randomPick() ? 2 : 0;
-            }
+          } else {
+            maxChildCount = randomPick() ? 2 : 0;
+          }
+
 
             const len = maxChildCount;
             // const len = Math.round(Math.random() * maxChildCount);
