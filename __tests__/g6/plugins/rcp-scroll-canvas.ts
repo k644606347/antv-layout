@@ -1,10 +1,13 @@
-import { Graph, IGroup } from '@antv/g6';
-import { G6Event, IG6GraphEvent, Item } from '@antv/g6-core';
+import { BehaviorOption, Graph, IShape } from '@antv/g6';
+import { G6Event, IBBox, IG6GraphEvent } from '@antv/g6-core';
 import { isBoolean, isObject } from '@antv/util';
+import debounce from 'lodash/debounce';
+import cloneDeep from 'lodash/cloneDeep';
+import { getGroupsBBoxMap, resetProto, calcVisibleArea, nodeGroupNeedHide, edgeGroupNeedHide } from './scroll-optimize';
 
 const ALLOW_EVENTS = ['shift', 'ctrl', 'alt', 'control', 'meta'];
 
-export default {
+const rcpScrollCanvas = {
   getDefaultCfg(): object {
     return {
       direction: 'both',
@@ -15,23 +18,50 @@ export default {
       // 当设置的值小于 0 时，相当于缩小了可滚动范围
       // 具体实例可参考：https://gw.alipayobjects.com/mdn/rms_f8c6a0/afts/img/A*IFfoS67_HssAAAAAAAAAAAAAARQnAQ
       scalableRange: 0,
-      allowDragOnItem: true
+      allowDragOnItem: true,
     };
   },
 
   getEvents(): { [key in G6Event]?: string } {
-    if (!this.zoomKey || ALLOW_EVENTS.indexOf(this.zoomKey) === -1) this.zoomKey = 'ctrl';
+    if (!this.zoomKey || ALLOW_EVENTS.indexOf(this.zoomKey) === -1) { this.zoomKey = 'ctrl'; }
     return {
       wheel: 'onWheel',
     };
   },
 
+  prevCanvasBBox: null as IBBox | null,
+  bboxCacheMap: null as Record<string, IBBox> | null,
+  optimizeConfig: {
+    offsetUnit: 200,
+  },
+
+  getGroupsBBoxMap() {
+    let cache = this.bboxCacheMap;
+    if (cache) {
+      return cache;
+    }
+
+    const { bboxMap } = getGroupsBBoxMap(this.graph.get('canvas'));
+    this.bboxCacheMap = cache = bboxMap;
+
+    return bboxMap;
+  },
+  updateCanvasBBoxMap(bboxMap: Map<object, IBBox>, x: number, y: number) {
+    bboxMap.forEach(bbox => {
+      bbox.x += x; bbox.minX += x; bbox.maxX += x;
+      bbox.y += y; bbox.minY += y; bbox.maxY += y;
+    });
+  },
   onWheel(ev: IG6GraphEvent) {
-    if (!this.allowDrag(ev)) return;
+    if (!this.allowDrag(ev)) { return; }
     const graph = this.graph;
-    const zoomKeys = Array.isArray(this.zoomKey) ? [].concat(this.zoomKey) : [this.zoomKey];
-    if (zoomKeys.includes('control')) zoomKeys.push('ctrl');
-    let keyDown = zoomKeys.some(ele => ev[`${ele}Key`]);
+    
+    resetProto(graph);
+    
+    const zoomKeys = Array.isArray(this.zoomKey) ? ([] as any[]).concat(this.zoomKey) : [this.zoomKey];
+    const translateInfo = { x: 0, y: 0, direction: { x: '', y: '' } };
+    if (zoomKeys.includes('control')) { zoomKeys.push('ctrl'); }
+    const keyDown = zoomKeys.some(ele => ev[`${ele}Key`]);
     if (keyDown) {
       const canvas = graph.get('canvas');
       const point = canvas.getPointByClient(ev.clientX, ev.clientY);
@@ -48,11 +78,11 @@ export default {
     } else {
       let dx = (ev.deltaX || ev.movementX) as number;
       let dy = (ev.deltaY || ev.movementY) as number;
-      if (!dy && navigator.userAgent.indexOf('Firefox') > -1) dy = (-ev.wheelDelta * 125) / 3
+
+      if (!dy && navigator.userAgent.indexOf('Firefox') > -1) { dy = (-ev.wheelDelta * 125) / 3; }
 
       const width = this.graph.get('width');
       const height = this.graph.get('height');
-      const graphCanvasBBox = this.graph.get('canvas').getCanvasBBox();
 
       let expandWidth = this.scalableRange as number;
       let expandHeight = this.scalableRange as number;
@@ -61,34 +91,37 @@ export default {
         expandWidth = width * expandWidth;
         expandHeight = height * expandHeight;
       }
+
+      const bboxMap = this.getGroupsBBoxMap();
+      const graphCanvasBBox = bboxMap.get('-root');
       const { minX, maxX, minY, maxY } = graphCanvasBBox;
 
 
       if (dx > 0) {
         if (maxX < -expandWidth) {
-          dx = 0
+          dx = 0;
         } else if (maxX - dx < -expandWidth) {
-          dx = maxX + expandWidth
+          dx = maxX + expandWidth;
         }
       } else if (dx < 0) {
         if (minX > width + expandWidth) {
-          dx = 0
+          dx = 0;
         } else if (minX - dx > width + expandWidth) {
-          dx = minX - (width + expandWidth)
+          dx = minX - (width + expandWidth);
         }
       }
 
       if (dy > 0) {
         if (maxY < -expandHeight) {
-          dy = 0
+          dy = 0;
         } else if (maxY - dy < -expandHeight) {
-          dy = maxY + expandHeight
+          dy = maxY + expandHeight;
         }
       } else if (dy < 0) {
         if (minY > height + expandHeight) {
-          dy = 0
+          dy = 0;
         } else if (minY - dy > height + expandHeight) {
-          dy = minY - (height + expandHeight)
+          dy = minY - (height + expandHeight);
         }
       }
 
@@ -98,124 +131,183 @@ export default {
         dx = 0;
       }
 
-      graph.translate(-dx, -dy);
+      const x = translateInfo.x = dx === 0 ? dx : -dx;
+      const y = translateInfo.y = dy === 0 ? dy : -dy;
+      if (x !== 0) {
+        translateInfo.direction.x = x > 0 ? 'L' : 'R';
+      }
+      if (y !== 0) {
+        translateInfo.direction.y = y > 0 ? 'T' : 'B';
+      }
+      // console.log('x,y', x, y)
+      this.updateCanvasBBoxMap(bboxMap, x, y);
+      this.processOptimize(translateInfo);
+      graph.translate(translateInfo.x, translateInfo.y);
+      this.afterProcess();
     }
     ev.preventDefault();
-
-
-    // hide the shapes when the zoom ratio is smaller than optimizeZoom
-    // hide the shapes when zoomming
-    const enableOptimize = this.get('enableOptimize');
-    if (enableOptimize) {
-      const optimizeZoom = this.get('optimizeZoom');
-      const optimized = this.get('optimized');
-      const nodes = graph.getNodes();
-      const edges = graph.getEdges();
-      const nodesLength = nodes.length;
-      const edgesLength = edges.length;
-
-      // hiding
-      if (!optimized) {
-        for (let n = 0; n < nodesLength; n++) {
-          const node = nodes[n];
-          if (!node.destroyed) {
-            const children = node.get('group').get('children');
-            const childrenLength = children.length;
-            for (let c = 0; c < childrenLength; c++) {
-              const shape = children[c];
-              if (!shape.destoryed && !shape.get('isKeyShape')) {
-                shape.set('ori-visibility', shape.get('ori-visibility') || shape.get('visible'));
-                shape.hide();
-              }
-            }
-          }
-        }
-
-        for (let edgeIndex = 0; edgeIndex < edgesLength; edgeIndex++) {
-          const edge = edges[edgeIndex];
-          const children = edge.get('group').get('children');
-          const childrenLength = children.length;
-          for (let c = 0; c < childrenLength; c++) {
-            const shape = children[c];
-            shape.set('ori-visibility', shape.get('ori-visibility') || shape.get('visible'));
-            shape.hide();
-          }
-        }
-        this.set('optimized', true);
-      }
-
-      // showing after 100ms
-      clearTimeout(this.get('timeout'));
-      const timeout = setTimeout(() => {
-        const currentZoom = graph.getZoom();
-        const curOptimized = this.get('optimized');
-        if (curOptimized) {
-          this.set('optimized', false);
-          for (let n = 0; n < nodesLength; n++) {
-            const node = nodes[n];
-            const children = node.get('group').get('children');
-            const childrenLength = children.length;
-            if (currentZoom < optimizeZoom) {
-              const keyShape = node.getKeyShape();
-              const oriVis = keyShape.get('ori-visibility');
-              if (oriVis) keyShape.show();
-            } else {
-              for (let c = 0; c < childrenLength; c++) {
-                const shape = children[c];
-                const oriVis = shape.get('ori-visibility');
-                if (!shape.get('visible') && oriVis) {
-                  if (oriVis) shape.show();
-                }
-              }
-            }
-          }
-
-          for (let edgeIndex = 0; edgeIndex < edgesLength; edgeIndex++) {
-            const edge = edges[edgeIndex];
-            const children = edge.get('group').get('children');
-            const childrenLength = children.length;
-            if (currentZoom < optimizeZoom) {
-              const keyShape = edge.getKeyShape();
-              const oriVis = keyShape.get('ori-visibility');
-              if (oriVis) keyShape.show();
-            } else {
-              for (let c = 0; c < childrenLength; c++) {
-                const shape = children[c];
-                if (!shape.get('visible')) {
-                  const oriVis = shape.get('ori-visibility');
-                  if (oriVis) shape.show();
-                }
-              }
-            }
-          }
-        }
-      }, 100);
-      this.set('timeout', timeout);
-    }
   },
+  processOptimize(translateInfo: any) {
+    const graph = this.graph;
+    const bboxMap = this.getGroupsBBoxMap();
+    const graphCanvasBBox = bboxMap.get('-root');
+    const enableOptimize = this.get('enableOptimize');
+
+    
+    if (!enableOptimize) {
+      return;
+    }
+    
+    const prevCanvasBBox = this.prevCanvasBBox;
+    const { offsetUnit } = this.optimizeConfig;
+    const offsetIsOverLength = prevCanvasBBox === null ?  true : (
+      Math.abs(Math.abs(prevCanvasBBox.x) - Math.abs(graphCanvasBBox.x)) > offsetUnit
+      || Math.abs(Math.abs(prevCanvasBBox.y) - Math.abs(graphCanvasBBox.y)) > offsetUnit
+    );
+
+    if (!offsetIsOverLength) {
+      return;
+    }
+    
+    const canvasRect = graph.get('canvas').get('el').getBoundingClientRect();
+    const visibleArea = calcVisibleArea(canvasRect, {
+      width: canvasRect.width,
+      height: canvasRect.height,
+    }, translateInfo.direction);
+
+
+    let nodeOptimized: Boolean | undefined = this.get('nodeOptimized');
+
+    // hiding
+    // if (!nodeOptimized) {
+    // console.time('nodeOptimized');
+    graph.getNodes().forEach(node => {
+      if (!node.destroyed) {
+        const group = node.get('group');
+        const bbox = bboxMap.get(group.cfg.id);
+        const gNeedHide = nodeGroupNeedHide(bbox, visibleArea, translateInfo);
+        // console.log(gNeedHide, group.cfg.id, bbox, canvasRect.width, canvasRect.height, translateInfo)
+        // console.log(gNeedHide, group.cfg.id);
+        const groupIsVisible = group.get('visible');
+        if (gNeedHide) {
+          if (groupIsVisible) {
+            group.hide();
+            group.getChildren().forEach(child => {
+              if (child.get('visible')) child.hide();
+            });
+            nodeOptimized = true;
+          }
+        } else {
+          if (!groupIsVisible) {
+            group.show();
+            group.getChildren().forEach(child => {
+              if (!child.get('visible')) child.show();
+            });
+          }
+        }
+      }
+    });
+    // console.timeEnd('nodeOptimized');
+    this.set('nodeOptimized', nodeOptimized);
+
+    let edgeOptimized: Boolean | undefined = this.get('edgeOptimized');
+    // console.time('edgeOptimized');
+    graph.getEdges().forEach(edge => {
+      const group = edge.get('group');
+
+      const bbox = bboxMap.get(group.cfg.id);
+      const gNeedHide = edgeGroupNeedHide(bbox, visibleArea, translateInfo);
+      const groupIsVisible = group.get('visible');
+      if (gNeedHide) {
+        if (groupIsVisible) {
+          group.hide();
+          group.getChildren().forEach(child => {
+            child.hide();
+          });
+          edgeOptimized = true;
+        }
+      } else {
+        if (!groupIsVisible) {
+          group.show();
+          group.getChildren().forEach(child => {
+            child.show();
+          });
+        }
+      }
+    });
+    // console.timeEnd('edgeOptimized');
+    this.set('edgeOptimized', edgeOptimized);
+    this.prevCanvasBBox = cloneDeep(graphCanvasBBox);
+  },
+  afterProcess: debounce(function afterProcessByDebounce() {
+    let nodeOptimized: Boolean | undefined = this.get('nodeOptimized');
+    if (nodeOptimized) {
+      this.graph.getNodes().forEach(edge => {
+        const group = edge.get('group');
+        if (!group.get('visible')) {
+          group.show();
+          group.getChildren().forEach(child => {
+            child.show();
+          });
+        }
+      });
+    }
+    
+    let edgeOptimized: Boolean | undefined = this.get('edgeOptimized');
+    if (edgeOptimized) {
+      this.graph.getEdges().forEach(edge => {
+        const group = edge.get('group');
+        if (!group.get('visible')) {
+          group.show();
+          group.getChildren().forEach(child => {
+            child.show();
+          });
+        }
+      });
+    }
+    
+    if (nodeOptimized || edgeOptimized) {
+      this.graph.translate(0, 0);
+    }
+    this.set('nodeOptimized', false);
+    this.set('edgeOptimized', false);
+
+    this.prevCanvasBBox = null;
+    this.bboxCacheMap = null;
+    console.log('afterProcess');
+  }, 2000),
   allowDrag(evt: IG6GraphEvent) {
     const target = evt.target;
     const targetIsCanvas = target && target.isCanvas && target.isCanvas();
-    if (isBoolean(this.allowDragOnItem) && !this.allowDragOnItem && !targetIsCanvas) return false;
+    if (isBoolean(this.allowDragOnItem) && !this.allowDragOnItem && !targetIsCanvas) { return false; }
     if (isObject(this.allowDragOnItem)) {
-      const { node, edge, combo } = this.allowDragOnItem;
+      const { node, edge, combo } = this.allowDragOnItem as any;
       const itemType = evt.item?.getType?.();
-      if (!node && itemType === 'node') return false;
-      if (!edge && itemType === 'edge') return false;
-      if (!combo && itemType === 'combo') return false;
+      if (!node && itemType === 'node') { return false; }
+      if (!edge && itemType === 'edge') { return false; }
+      if (!combo && itemType === 'combo') { return false; }
     }
     return true;
-  }
+  },
 };
 
-function groupNeedHide(group: IGroup) {
-  const bbox = group.getCanvasBBox();
-  if (group.destroyed || !group.get('visible')) return false;
+export default rcpScrollCanvas;
 
-  const offset = { x: window.innerWidth, y: window.innerHeight };
-  const needHideX = (bbox.maxX < -offset.x) || (bbox.minX > offset.x * 2);
-  const needHideY = (bbox.maxY < -offset.y) || (bbox.minY > offset.y * 2);
-  const needHide = needHideX || needHideY;
+// function translateByIteration(graph: any, x: number, y: number) {
+//   var group = graph.get('group');
+//   var matrix = JSON.parse(JSON.stringify(group.getMatrix()));
+//   if (!matrix) {
+//     matrix = [1, 0, 0, 0, 1, 0, 0, 0, 1];
+//   }
 
-  return needHide;
-}
+//   matrix = ext.transform(matrix, [['t', x, y]]);
+//   // group.setMatrix(matrix);
+//   group.attr('matrix', matrix);
+
+//   // element/onAttrChange
+//   group.set('totalMatrix', null);
+
+//   // container/onAttrChange
+//   const totalMatrix = group.getTotalMatrix();
+//   group._applyChildrenMarix();
+// }
