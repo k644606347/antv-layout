@@ -9,7 +9,7 @@
     "esModuleInterop": true,
     "noImplicitAny": true,
     // "noEmitOnError": true,
-    "noUnusedLocals": true,
+    // "noUnusedLocals": true,
     "strictNullChecks": true,
     "resolveJsonModule": true,
     "experimentalDecorators": true,
