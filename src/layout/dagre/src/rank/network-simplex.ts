@@ -43,7 +43,10 @@ const { preorder, postorder } = algorithm;
  */
 const networkSimplex = (og: Graph) => {
   const g = simplify(og);
+
+  // initRank === longestPath
   initRank(g);
+  
   const t = feasibleTree(g);
   initLowLimValues(t);
   initCutValues(t, g);
@@ -62,6 +65,8 @@ const networkSimplex = (og: Graph) => {
 export const initCutValues = (t: Graph, g: Graph) => {
   let vs = postorder(t, t.nodes());
   vs = vs?.slice(0, vs?.length - 1);
+  console.log('t.nodes()', t.nodes())
+  console.log('[initCutValues]', 'postorder=', vs)
   vs?.forEach((v: string) => {
     assignCutValue(t, g, v);
   });
@@ -70,6 +75,7 @@ export const initCutValues = (t: Graph, g: Graph) => {
 const assignCutValue = (t: Graph, g: Graph, child: string) => {
   const childLab = t.node(child)!;
   const parent = childLab.parent!;
+  console.log('[assignCutValue] t.edgeFromArgs(child, parent)', 'child=' + child, 'parent=' + parent, t.edgeFromArgs(child, parent))
   t.edgeFromArgs(child, parent)!.cutvalue = calcCutValue(t, g, child);
 };
 
@@ -81,6 +87,7 @@ export const calcCutValue = (t: Graph, g: Graph, child: string) => {
   const childLab = t.node(child)!;
   const parent = childLab.parent as string;
   // True if the child is on the tail end of the edge in the directed graph
+  // NOTE: 看论文中解释，猜测childIsTail=true是指child位于边的尾部，即没有箭头的那一端，这时child代表edge中的v
   let childIsTail = true;
   // The graph's view of the tree edge we're inspecting
   let graphEdge = g.edgeFromArgs(child, parent)!;
@@ -123,20 +130,25 @@ const dfsAssignLowLim = (tree: Graph, visited: Record<string, boolean>, nextLim:
   const label = tree.node(v)!;
 
   visited[v] = true;
+  console.log('[dfsAssignLowLim] tree.neighbors(v)', v, tree.neighbors(v))
   tree.neighbors(v)?.forEach((w) => {
     if (!visited[w]) {
+      // console.log('[dfsAssignLowLim]', v + '.neighbor =', w)
       useNextLim = dfsAssignLowLim(tree, visited, useNextLim, w, v);
     }
   });
 
   label.low = low;
   label.lim = useNextLim++;
+  console.log(v + '.parent', parent)
   if (parent) {
     label.parent = parent;
   } else {
     // TODO should be able to remove this when we incrementally update low lim
     delete label.parent;
   }
+
+  console.log('[dfsAssignLowLim]', v + '.lim', useNextLim, v + '.low', low);
 
   return useNextLim;
 };

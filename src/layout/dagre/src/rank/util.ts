@@ -78,6 +78,8 @@ const longestPathWithLayer = (g: Graph) => {
       (edgeObj) => {
         const wRank = dfs(edgeObj.w);
         const minLen = g.edge(edgeObj)!.minlen!;
+
+        // NOTE: r可能为负
         const r = wRank - minLen;
         if (r) {
           if (rank === undefined || r < rank) {
@@ -96,6 +98,7 @@ const longestPathWithLayer = (g: Graph) => {
       minRank = rank;
     }
 
+    // NOTE: node.rank
     label.rank = rank;
     return rank;
   };
@@ -137,6 +140,8 @@ const longestPathWithLayer = (g: Graph) => {
   g.nodes().forEach((n) => {
     const label = g.node(n)!;
     if(!label) return;
+
+    // if会走吗？好像根本没有layer字段
     if (!isNaN(label.layer as number)) {
       dfsForward(n, label.layer as number); // 默认的dummy root所在层的rank是-1
     } else {
@@ -145,16 +150,22 @@ const longestPathWithLayer = (g: Graph) => {
   });
 };
 
-/*
+/**
  * Returns the amount of slack for the given edge. The slack is defined as the
  * difference between the length of the edge and its minimum length.
+ * 
+ * 返回给定边的松弛量。松弛被定义为边缘的长度与其最小长度之间的差。
  */
 const slack = (g: Graph, e: Edge) => {
-  return (
+  const result = (
     (g.node(e.w)!.rank as number) -
     (g.node(e.v)!.rank as number) -
     (g.edge(e)!.minlen as number)
   );
+
+  console.log('slack', e.v, e.w, result);
+  
+  return result;
 };
 
 export { longestPath, longestPathWithLayer, slack };

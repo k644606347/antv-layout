@@ -6,7 +6,7 @@
 // var networkSimplex = require("./network-simplex");
 
 import { longestPath, longestPathWithLayer } from './util';
-import { feasibleTreeWithLayer as feasibleTree } from './feasible-tree';
+import { feasibleTreeWithLayer, feasibleTree } from './feasible-tree';
 import networkSimplex from './network-simplex';
 import { Graph } from '../../graph';
 
@@ -30,6 +30,7 @@ import { Graph } from '../../graph';
  *       fix them up later.
  */
 const rank = (g: Graph) => {
+  console.info('g.graph().ranker', g.graph().ranker);
   switch(g.graph().ranker) {
   case "network-simplex": networkSimplexRanker(g); break;
   case "tight-tree": tightTreeRanker(g); break;
@@ -37,6 +38,8 @@ const rank = (g: Graph) => {
   // default: networkSimplexRanker(g);
   default: tightTreeRanker(g);
   }
+  console.info(g.nodes().map(n => n + '.rank=' + g.node(n)?.rank));
+
 };
 
 // A fast and simple ranker, but results are far from optimal.
@@ -44,8 +47,13 @@ const longestPathRanker = longestPath;
 
 const tightTreeRanker = (g: Graph) => {
   longestPathWithLayer(g);
-  feasibleTree(g);
+  feasibleTreeWithLayer(g);
 };
+
+function tightTreeRankerByRaw(g: Graph) {
+  longestPath(g);
+  feasibleTree(g);
+}
 
 const networkSimplexRanker = (g: Graph) => {
   networkSimplex(g);

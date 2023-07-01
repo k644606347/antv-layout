@@ -122,8 +122,10 @@ const tightTreeWithLayer = (t: Graph, g: Graph) => {
       const edgeV = e.v;
       const w = (v === edgeV) ? e.w : edgeV;
       // 对于指定layer的，直接加入tight-tree，不参与调整
+      // NOTE: 有layer or 有松弛量，则入tightGraph
       if (!t.hasNode(w) && (g.node(w)!.layer !== undefined || !slack(g, e))) {
         t.setNode(w, {});
+        // NOTE: 当e.w === v时，t.setEdge会做反转，v = e.w, w = e.v
         t.setEdge(v, w, {});
         dfs(w);
       }
@@ -131,6 +133,7 @@ const tightTreeWithLayer = (t: Graph, g: Graph) => {
   };
 
   t.nodes().forEach(dfs);
+  console.log('t.nodeCount', t.nodeCount());
   return t.nodeCount();
 };
 

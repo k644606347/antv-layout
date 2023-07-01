@@ -1,11 +1,11 @@
 import { IBBox, IShape } from '@antv/g6';
 
-export function nodeGroupNeedHide(bbox: IBBox, visibleArea: any, offset: any) {
-    return !inVisibleArea(bbox, visibleArea, offset);
+export function nodeGroupNeedHide(bbox: IBBox, visibleArea: any) {
+    return !inVisibleArea(bbox, visibleArea);
 }
 
-export function edgeGroupNeedHide(bbox: IBBox, visibleArea: any, offset: any) {
-    const itemInVisibleArea = inVisibleArea(bbox, visibleArea, offset);
+export function edgeGroupNeedHide(bbox: IBBox, visibleArea: any) {
+    const itemInVisibleArea = inVisibleArea(bbox, visibleArea);
 
     if (!itemInVisibleArea) { return true; }
 
@@ -23,7 +23,7 @@ export function edgeGroupNeedHide(bbox: IBBox, visibleArea: any, offset: any) {
     return false;
 }
 
-export function inVisibleArea(bbox: IBBox, visibleArea: Record<string, number>, offset: Record<string, number>) {
+export function inVisibleArea(bbox: IBBox, visibleArea: Record<string, number>) {
     const xIsHidden = (bbox.maxX) <= visibleArea.minX || (bbox.minX) >= visibleArea.maxX;
     if (xIsHidden) { return false; }
 

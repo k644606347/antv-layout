@@ -14,7 +14,7 @@
     "resolveJsonModule": true,
     "experimentalDecorators": true,
     "jsx": "react",
-    "target": "es5",
+    "target": "es2022",
     "lib": [
       "dom",
       "es2015"

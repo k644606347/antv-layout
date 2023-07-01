@@ -1,7 +1,8 @@
 import { G6Event, IG6GraphEvent } from '@antv/g6-core';
 import { isBoolean, isObject } from '@antv/util';
-import { IGraph } from '@antv/g6';
+import { IBBox, IGraph } from '@antv/g6';
 import { Util } from '@antv/g6-core';
+import { getGroupsBBoxMap, nodeGroupNeedHide, edgeGroupNeedHide, calcVisibleArea } from './scroll-optimize';
 
 const { cloneEvent, isNaN } = Util;
 
@@ -113,6 +114,25 @@ export default {
       this.onDrag(evt);
     }
   },
+
+  prevCanvasBBox: null as IBBox | null,
+  bboxCacheMap: null as Record<string, IBBox> | null,
+  optimizeConfig: {
+    offsetUnit: 200,
+  },
+
+  getGroupsBBoxMap() {
+    let cache = this.bboxCacheMap;
+    if (cache) {
+      return cache;
+    }
+
+    const { bboxMap } = getGroupsBBoxMap(this.graph.get('canvas'));
+    this.bboxCacheMap = cache = bboxMap;
+
+    return bboxMap;
+  },
+  
   onDragStart(e: IG6GraphEvent) {
     const self = this as any;
     const event = e.originalEvent as MouseEvent;
@@ -143,29 +163,75 @@ export default {
     self.dragging = false;
 
     if (this.enableOptimize) {
-      // 拖动 canvas 过程中隐藏所有的边及label
-      const graph: IGraph = this.graph;
-      const edges = graph.getEdges();
-      for (let i = 0, len = edges.length; i < len; i++) {
-        const shapes = edges[i].get('group').get('children');
-        if (!shapes) continue;
-        shapes.forEach((shape) => {
-          shape.set('ori-visibility', shape.get('ori-visibility') || shape.get('visible'));
-          shape.hide();
-        });
-      }
-      const nodes = graph.getNodes();
-      for (let j = 0, nodeLen = nodes.length; j < nodeLen; j++) {
-        const container = nodes[j].getContainer();
-        const children = container.get('children');
-        for (const child of children) {
-          const isKeyShape = child.get('isKeyShape');
-          if (!isKeyShape) {
-            child.set('ori-visibility', child.get('ori-visibility') || child.get('visible'));
-            child.hide();
+        // 拖动 canvas 过程中隐藏所有的边及label
+        const graph: IGraph = this.graph;
+        const bboxMap = this.getGroupsBBoxMap();
+      const graphCanvasBBox = bboxMap.get('-root');
+      const { minX, maxX, minY, maxY } = graphCanvasBBox;
+
+      const canvasRect = graph.get('canvas').get('el').getBoundingClientRect();
+    const visibleArea = calcVisibleArea(canvasRect, {
+      width: canvasRect.width,
+      height: canvasRect.height,
+    }, translateInfo.direction);
+    
+      let nodeOptimized: Boolean | undefined = this.get('nodeOptimized');
+      graph.getNodes().forEach(node => {
+        if (!node.destroyed) {
+          const group = node.get('group');
+          const bbox = bboxMap.get(group.cfg.id);
+          const gNeedHide = nodeGroupNeedHide(bbox, visibleArea, translateInfo);
+          // console.log(gNeedHide, group.cfg.id, bbox, canvasRect.width, canvasRect.height, translateInfo)
+          // console.log(gNeedHide, group.cfg.id);
+          const groupIsVisible = group.get('visible');
+          if (gNeedHide) {
+            if (groupIsVisible) {
+              group.hide();
+              group.getChildren().forEach(child => {
+                if (child.get('visible')) child.hide();
+              });
+              nodeOptimized = true;
+            }
+          } else {
+            if (!groupIsVisible) {
+              group.show();
+              group.getChildren().forEach(child => {
+                if (!child.get('visible')) child.show();
+              });
+            }
           }
         }
-      }
+      });
+      // console.timeEnd('nodeOptimized');
+      this.set('nodeOptimized', nodeOptimized);
+  
+      let edgeOptimized: Boolean | undefined = this.get('edgeOptimized');
+      // console.time('edgeOptimized');
+      graph.getEdges().forEach(edge => {
+        const group = edge.get('group');
+  
+        const bbox = bboxMap.get(group.cfg.id);
+        const gNeedHide = edgeGroupNeedHide(bbox, visibleArea, translateInfo);
+        const groupIsVisible = group.get('visible');
+        if (gNeedHide) {
+          if (groupIsVisible) {
+            group.hide();
+            group.getChildren().forEach(child => {
+              child.hide();
+            });
+            edgeOptimized = true;
+          }
+        } else {
+          if (!groupIsVisible) {
+            group.show();
+            group.getChildren().forEach(child => {
+              child.show();
+            });
+          }
+        }
+      });
+      // console.timeEnd('edgeOptimized');
+      this.set('edgeOptimized', edgeOptimized);
     }
 
     // 绑定浏览器右键监听，触发拖拽结束，结束拖拽时移除

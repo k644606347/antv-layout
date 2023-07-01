@@ -12,3 +12,4 @@ es
 dist
 *.pem
 !mock-cert.pem
+/my-config

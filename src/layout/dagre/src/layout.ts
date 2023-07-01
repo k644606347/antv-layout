@@ -143,9 +143,9 @@ const runLayout = (g: Graph, time: any, opts: any) => {
   time("    reversePoints", () => {
     reversePointsForReversedEdges(g);
   });
-  time("    acyclic.undo", () => {
-    acyclic.undo(g);
-  });
+  // time("    acyclic.undo", () => {
+  //   acyclic.undo(g);
+  // });
 };
 
 /**

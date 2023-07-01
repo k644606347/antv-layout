@@ -26,6 +26,7 @@ import { addBorderNode, addDummyNode } from "./util";
  */
 const run = (g: Graph) => {
   const root = addDummyNode(g, "root", {}, "_root");
+  // NOTE: 算depth，子图depth + 1
   const depths = treeDepths(g);
   let maxDepth = Math.max(...Object.values(depths));
   
@@ -36,6 +37,7 @@ const run = (g: Graph) => {
   const height = maxDepth - 1; // Note: depths is an Object not an array
   const nodeSep = 2 * height + 1;
 
+  // TODO: nestingRoot的用途
   g.graph().nestingRoot = root;
 
   // Multiply minlen by nodeSep to align nodes on non-border ranks.
@@ -43,8 +45,13 @@ const run = (g: Graph) => {
     g.edge(e)!.minlen! *= nodeSep;
   });
 
+  // NOTE: 所有edge weight的和
+  
   // Calculate a weight that is sufficient to keep subgraphs vertically compact
   const weight = sumWeights(g) + 1;
+
+  // NOTE: g.children = array of nodename, 
+  // like: "mock_root", "depth_1_0", "depth_1_1", "depth_1_2"]
 
   // Create border nodes and link them up
   g.children()?.forEach((child) => {
