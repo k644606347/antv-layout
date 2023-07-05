@@ -3,6 +3,7 @@ import { addLabel, errorData, mock, mockCyclic, mockLongestPath, mockTightTree }
 import G6, { GraphOptions } from "@antv/g6";
 import rcpScrollCanvas from './plugins/rcp-scroll-canvas';
 import { cloneDeep, mergeWith } from 'lodash';
+import './test-node';
 
 G6.registerBehavior('rcp-scroll-canvas', rcpScrollCanvas)
 document.documentElement.setAttribute('style', 'height: 100%; margin: 0; paddding: 0;')
@@ -14,8 +15,8 @@ describe("dagre layout", () => {
 
 
     // const mockData = mockCyclic(3);
-    const mockData = mockTightTree();
-    // const mockData = mockLongestPath();
+    // const mockData = mockTightTree();
+    const mockData = mockLongestPath();
     // const mockData = errorData()
     addLabel(mockData)
     console.log('mockData', mockData)
@@ -140,6 +141,9 @@ describe("dagre layout", () => {
         // workerScriptURL: 'https://s2-11773.kwimgs.com/kos/nlav11773/temp/layout.min.js',
         workerScriptURL: 'http://127.0.0.1:1234/layout.min.js',
         // rankdir: 'LR',
+      },
+      defaultNode: {
+        type: 'test-node'
       },
       defaultEdge: {
         type: 'line',

@@ -38,6 +38,7 @@ const layout = (g: Graph, opts?: any) => {
         makeSpaceForEdgeLabels(layoutGraph);
       });
     }
+    console.log('before layout', g.edges())
     // TODO: 暂时处理层级设置不正确时的异常报错，提示设置正确的层级
     try {
       time("  runLayout", () => {
@@ -326,6 +327,7 @@ const injectEdgeLabelProxies = (g: Graph) => {
         rank:
           ((w.rank as number) - (v.rank as number)) / 2 + (v.rank as number),
       };
+      // NOTE: edge-proxy用来干什么的?
       addDummyNode(g, "edge-proxy", label, "_ep");
     }
   });

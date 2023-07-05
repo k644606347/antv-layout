@@ -14,6 +14,7 @@ export const addDummyNode = (
   attrs: Node<Record<string, any>>,
   name: string
 ) => {
+  // NOTE: 写法有点怪异，do while只是为了保证v不在g中
   let v;
   do {
     v = `${name}${Math.random()}`;

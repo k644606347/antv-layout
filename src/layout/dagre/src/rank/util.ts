@@ -24,7 +24,9 @@ import { Edge, Graph } from "../../graph";
 const longestPath = (g: Graph) => {
   const visited: Record<string, boolean> = {};
 
+  // v === node id
   const dfs = (v: string) => {
+    // TODO: 变量名从label改为node更清晰
     const label = g.node(v)!;
     if (!label) return 0;
     if (visited[v]) {

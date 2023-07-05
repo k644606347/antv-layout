@@ -31,6 +31,7 @@ import { Graph } from '../../graph';
  */
 const rank = (g: Graph) => {
   console.info('g.graph().ranker', g.graph().ranker);
+  console.log('g.sources()', g.sources())
   switch(g.graph().ranker) {
   case "network-simplex": networkSimplexRanker(g); break;
   case "tight-tree": tightTreeRanker(g); break;
@@ -39,6 +40,7 @@ const rank = (g: Graph) => {
   default: tightTreeRanker(g);
   }
   console.info(g.nodes().map(n => n + '.rank=' + g.node(n)?.rank));
+  console.info(g.edges().map(n => ('[' + n.v + '=>' + n.w + ']') + '.minlen=' + g.edge(n)?.minlen));
 
 };
 
