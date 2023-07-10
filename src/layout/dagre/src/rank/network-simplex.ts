@@ -75,7 +75,7 @@ export const initCutValues = (t: Graph, g: Graph) => {
 const assignCutValue = (t: Graph, g: Graph, child: string) => {
   const childLab = t.node(child)!;
   const parent = childLab.parent!;
-  console.log('[assignCutValue] t.edgeFromArgs(child, parent)', 'child=' + child, 'parent=' + parent, t.edgeFromArgs(child, parent))
+  // console.log('[assignCutValue] t.edgeFromArgs(child, parent)', 'child=' + child, 'parent=' + parent, t.edgeFromArgs(child, parent))
   t.edgeFromArgs(child, parent)!.cutvalue = calcCutValue(t, g, child);
 };
 
@@ -130,7 +130,7 @@ const dfsAssignLowLim = (tree: Graph, visited: Record<string, boolean>, nextLim:
   const label = tree.node(v)!;
 
   visited[v] = true;
-  console.log('[dfsAssignLowLim] tree.neighbors(v)', v, tree.neighbors(v))
+  // console.log('[dfsAssignLowLim] tree.neighbors(v)', v, tree.neighbors(v))
   tree.neighbors(v)?.forEach((w) => {
     if (!visited[w]) {
       // console.log('[dfsAssignLowLim]', v + '.neighbor =', w)
@@ -140,7 +140,7 @@ const dfsAssignLowLim = (tree: Graph, visited: Record<string, boolean>, nextLim:
 
   label.low = low;
   label.lim = useNextLim++;
-  console.log(v + '.parent', parent)
+  // console.log(v + '.parent', parent)
   if (parent) {
     label.parent = parent;
   } else {
@@ -148,7 +148,7 @@ const dfsAssignLowLim = (tree: Graph, visited: Record<string, boolean>, nextLim:
     delete label.parent;
   }
 
-  console.log('[dfsAssignLowLim]', v + '.lim', useNextLim, v + '.low', low);
+  // console.log('[dfsAssignLowLim]', v + '.lim', useNextLim, v + '.low', low);
 
   return useNextLim;
 };

@@ -79,6 +79,7 @@ const runLayout = (g: Graph, time: any, opts: any) => {
   time("    injectEdgeLabelProxies", () => {
     injectEdgeLabelProxies(g);
   });
+  /** 删除空rank */
   time("    removeEmptyRanks", () => {
     removeEmptyRanks(g);
   });

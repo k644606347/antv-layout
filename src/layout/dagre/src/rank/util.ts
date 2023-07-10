@@ -165,7 +165,7 @@ const slack = (g: Graph, e: Edge) => {
     (g.edge(e)!.minlen as number)
   );
 
-  console.log('slack', e.v, e.w, result);
+  // console.log('slack', e.v, e.w, result);
   
   return result;
 };

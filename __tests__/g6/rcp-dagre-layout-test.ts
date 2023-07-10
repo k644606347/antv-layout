@@ -95,7 +95,7 @@ describe("dagre layout", () => {
       renderByG6(data, config, container);
     })
     container.appendChild(btns);
-    container.setAttribute('style', 'width: 33%; height: 100%; border: .5px solid yellow;')
+    container.setAttribute('style', 'width: 33%; height: 100%; border: 5px solid white;')
     const mainEl = document.querySelector('#mainEl')!;
     if (![...mainEl.childNodes].find(n => n === container)) {
       mainEl.appendChild(container);

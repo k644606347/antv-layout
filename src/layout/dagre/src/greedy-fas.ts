@@ -20,6 +20,9 @@ class StateGraph extends RawGraph<string, StateNode, number> {}
  * The algorithm comes from: P. Eades, X. Lin, and W. F. Smyth, "A fast and
  * effective heuristic for the feedback arc set problem." This implementation
  * adjusts that from the paper to allow for weighted edges.
+ * 
+ * 一种为图寻找反馈弧集的贪婪启发式算法。反馈弧集是一组可以去除的边，使图成为非循环的。
+ * 该算法来自：P.Eades，X.Lin和W.F.Smyth，“反馈弧集问题的一种快速有效的启发式算法”。该实现对论文中的算法进行了调整，以允许加权边。
  */
 
 const DEFAULT_WEIGHT_FN = () => 1;

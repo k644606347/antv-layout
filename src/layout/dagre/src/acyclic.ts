@@ -5,6 +5,7 @@ const run = (g: Graph) => {
   const weightFn = (g: Graph) => {
     return (e: Edge) => g.edge(e)?.weight || 1;
   };
+  console.log('g.graph().acyclicer === "greedy"', g.graph().acyclicer === "greedy")
   const fas =
     g.graph().acyclicer === "greedy" ? greedyFAS(g, weightFn(g)) : dfsFAS(g);
   fas?.forEach((e: Edge) => {
@@ -14,6 +15,7 @@ const run = (g: Graph) => {
     label.reversed = true;
     g.setEdge(e.w, e.v, label, `rev-${Math.random()}`);
   });
+  console.table(g.edges())
 };
 
 const dfsFAS = (g: Graph) => {
@@ -28,6 +30,7 @@ const dfsFAS = (g: Graph) => {
     visited[v] = true;
     stack[v] = true;
     g.outEdges(v)?.forEach((e) => {
+      console.log('e.v', e.v, 'e.w', e.w)
       if (stack[e.w]) {
         fas.push(e);
       } else {

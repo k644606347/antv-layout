@@ -34,7 +34,7 @@ const getNodeConfig = (node) => {
 G6.registerNode('test-node', {
     shapeType: 'rect',
     draw(cfg, group) {
-        console.log('cfg', cfg)
+        // console.log('cfg', cfg)
         const size = {
             width: 30,
             height: 30,

@@ -190,13 +190,28 @@ export const normalizeRanks = (g: Graph) => {
   });
 };
 
+/**
+ * 1.找到最小rank作为offset
+ * 2.每个node的rank - offset，并收集到layers
+ * 3.根据nodeRankFactor，算出delta
+ * 4.遍历后续rank时，delta不为0时，更新rank, newRank = curRank - delta
+ * @param g 
+ */
 export const removeEmptyRanks = (g: Graph) => {
   // Ranks may not start at 0, so we need to offset them
   const nodes = g.nodes();
   const nodeRanks = nodes
     .filter((v) => g.node(v)?.rank !== undefined)
     .map((v) => g.node(v)!.rank as number);
-
+  console.table(nodes.map(n => {
+    const { rank, order, ...restProps } = g.node(n) as any
+    return {
+      n,
+      rank,
+      order,
+      restProps: JSON.stringify(restProps),
+    };
+  }))
   const offset = Math.min(...nodeRanks);
   const layers: string[][] = [];
 
@@ -208,10 +223,11 @@ export const removeEmptyRanks = (g: Graph) => {
     }
     layers[rank].push(v);
   });
+  console.table(layers)
 
   let delta = 0;
   const nodeRankFactor = g.graph().nodeRankFactor || 0;
-
+  console.log('nodeRankFactor', nodeRankFactor)
   for (let i = 0; i < layers.length; i++) {
     const vs = layers[i];
     if (vs === undefined) {
