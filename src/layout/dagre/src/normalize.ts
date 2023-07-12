@@ -46,9 +46,10 @@ const normalizeEdge = (g: Graph, e: Edge) => {
       edgeLabel,
       width: 0,
       height: 0,
-      edgeObj: e,
+      edgeObj: e, // 这里放了原始edge的信息
       rank: vRank,
     };
+    // console.log('dummy', attrs)
     dummy = addDummyNode(g, "edge", attrs, "_d");
     if (vRank === labelRank) {
       attrs.width = edgeLabel.width!;

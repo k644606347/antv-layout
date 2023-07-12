@@ -182,12 +182,22 @@ export const normalizeRanks = (g: Graph) => {
     .filter((v) => g.node(v)?.rank !== undefined)
     .map((v) => g.node(v)!.rank!);
   const min = Math.min(...nodeRanks);
+  console.log('min rank', min)
+  const logData: any[] = []
+
   g.nodes().forEach((v) => {
     const node = g.node(v)!;
     if (node.hasOwnProperty("rank") && min !== Infinity) {
+      const oldRank = node.rank
       node.rank! -= min;
+      logData.push({
+        oldRank,
+        newRank: node.rank,
+        v: v
+      })
     }
   });
+  console.table(logData)
 };
 
 /**

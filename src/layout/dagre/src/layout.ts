@@ -76,6 +76,7 @@ const runLayout = (g: Graph, time: any, opts: any) => {
   time("    rank", () => {
     rank(asNonCompoundGraph(g));
   });
+  /** 看起来是要创建一个虚拟节点(edge-proxy)，承载边上的文字的展示, rank = (v + w) / 2 */
   time("    injectEdgeLabelProxies", () => {
     injectEdgeLabelProxies(g);
   });
@@ -86,18 +87,33 @@ const runLayout = (g: Graph, time: any, opts: any) => {
   time("    nestingGraph.cleanup", () => {
     nestingGraph.cleanup(g);
   });
+  /** 调整图中所有节点的rank，使得所有节点v的rank >=0，并且至少一个节点w的rank=0。 */
   time("    normalizeRanks", () => {
     normalizeRanks(g);
   });
+  /** 
+   * 子图相关，遍历所有节点，将borderTop设置为node.minRank，borderBottom设置为node.minRank 
+   */
   time("    assignRankMinMax", () => {
     assignRankMinMax(g);
   });
+  /** 
+   * 删除edge-proxy节点，并将edge-proxy的rank赋值到它所在边的labelRank属性上
+   */
   time("    removeEdgeLabelProxies", () => {
     removeEdgeLabelProxies(g);
   });
+  /**
+   * 简单来说，就是将一个edge拆分成多个edge（一般为两个），中间放个用来显示label的dummyNode；
+   * step1. 遍历所有edge，并将其从graph上删除，然后读取edge.labelRank，并设置到dummyNode上；
+   * step2. 设置两个新edge: v => dummyNode / dummyNode => w
+   */
   time("    normalize.run", () => {
     normalize.run(g);
   });
+  /**
+   * 
+   */
   time("    parentDummyChains", () => {
     parentDummyChains(g);
   });
@@ -316,10 +332,12 @@ const makeSpaceForEdgeLabels = (g: Graph) => {
  * label is going to, if it has one of non-zero width and height. We do this
  * so that we can safely remove empty ranks while preserving balance for the
  * label's position.
+ * 看起来是要创建一个虚拟节点(edge-proxy)，承载边上的文字的展示, rank = (v + w) / 2
  */
 const injectEdgeLabelProxies = (g: Graph) => {
   g.edges().forEach((e) => {
     const edge = g.edge(e)!;
+    console.log('edge.width', e, edge.width, edge.height)
     if (edge.width && edge.height) {
       const v = g.node(e.v)!;
       const w = g.node(e.w)!;
@@ -339,6 +357,7 @@ const assignRankMinMax = (g: Graph) => {
   g.nodes().forEach((v) => {
     const node = g.node(v)!;
     if (node.borderTop) {
+      console.log('borderTop', node.borderTop)
       node.minRank = g.node(node.borderTop)?.rank;
       node.maxRank = g.node(node.borderBottom)?.rank;
       maxRank = Math.max(maxRank, node.maxRank || -Infinity);
@@ -351,6 +370,7 @@ const removeEdgeLabelProxies = (g: Graph) => {
   g.nodes().forEach((v) => {
     const node = g.node(v)!;
     if (node.dummy === "edge-proxy") {
+      console.log('edge-proxy node', node)
       g.edge((node as any).e)!.labelRank = node.rank;
       g.removeNode(v);
     }
