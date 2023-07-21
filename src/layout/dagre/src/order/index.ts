@@ -26,12 +26,15 @@ const order = (g: Graph, keepNodeOrder?: boolean) => {
   const mxRank = maxRank(g);
   const range1 = [];
   const range2 = [];
+  /** TODO: 这里的逻辑完全可以用一个for each */
   for (let i = 1; i < mxRank + 1; i++) range1.push(i);
   for (let i = mxRank - 1; i > -1; i--) range2.push(i);
   const downLayerGraphs = buildLayerGraphs(g, range1, "inEdges");
   const upLayerGraphs = buildLayerGraphs(g, range2, "outEdges");
-
+  
   let layering = initOrder(g);
+  console.log('layering', layering)
+  // 为每个node分配一个order属性，属性值是二级数组：layering[rank]中的下标
   assignOrder(g, layering);
 
   let bestCC = Number.POSITIVE_INFINITY;

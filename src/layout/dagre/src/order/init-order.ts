@@ -14,17 +14,25 @@ import { max } from './math';
  */
 const initOrder = (g: Graph) => {
   const visited: Record<string, boolean> = {};
+
+  // 子图相关
+  // 找到所有的单一节点（没有子节点的节点）
   const simpleNodes = g.nodes().filter((v) => {
     return !g.children(v)?.length;
   });
+
+  // 取最大rank
   const nodeRanks = simpleNodes.map((v) => (g.node(v)!.rank as number));
   const maxRank = max(nodeRanks);
+
+  // 初始化layers，每级rank占一个数组项
   const layers: string[][] = [];
   if (typeof maxRank === 'number')
     for (let i = 0; i < maxRank + 1; i++) {
       layers.push([]);
     }
 
+  // 通过深度优先遍历node，并将node赋值到layers[node.rank]上
   const dfs = (v: string) => {
     if (visited.hasOwnProperty(v)) return;
     visited[v] = true;
@@ -35,6 +43,8 @@ const initOrder = (g: Graph) => {
     g.successors(v)?.forEach((child) => dfs(child as any));
   };
 
+  // orderedVs按node.rank升序排列
+  // 注意Array.sort不是纯函数，会变更array自身
   const orderedVs = simpleNodes.sort((a, b) => (g.node(a)!.rank as number) - (g.node(b)!.rank as number));
   // const orderedVs = _.sortBy(simpleNodes, function(v) { return g.node(v)!.rank; });
 
@@ -42,6 +52,8 @@ const initOrder = (g: Graph) => {
   const beforeSort = orderedVs.filter((n) => {
     return g.node(n)!.fixorder !== undefined;
   });
+
+  // fixOrderNodes按node.fixorder升序排列
   const fixOrderNodes = beforeSort.sort((a, b) => (g.node(a)!.fixorder as number) - (g.node(b)!.fixorder as number));
   fixOrderNodes?.forEach((n) => {
     if (!isNaN(g.node(n)!.rank as number)) {

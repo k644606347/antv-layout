@@ -104,7 +104,7 @@ const runLayout = (g: Graph, time: any, opts: any) => {
     removeEdgeLabelProxies(g);
   });
   /**
-   * 简单来说，就是将一个edge拆分成多个edge（一般为两个），中间放个用来显示label的dummyNode；
+   * 简单来说，就是将一个edge拆分成多个edge（一般为两个），中间放个用来显示label的dummyNode(虚拟节点，name为_d开头)；
    * step1. 遍历所有edge，并将其从graph上删除，然后读取edge.labelRank，并设置到dummyNode上；
    * step2. 设置两个新edge: v => dummyNode / dummyNode => w
    */
@@ -120,11 +120,25 @@ const runLayout = (g: Graph, time: any, opts: any) => {
   time("    addBorderSegments", () => {
     addBorderSegments(g);
   });
+  console.log('opts.keepNodeOrder', opts?.keepNodeOrder)
   if (opts && opts.keepNodeOrder) {
     time("    initDataOrder", () => {
       initDataOrder(g, opts.nodeOrder);
     });
   }
+
+
+/**
+  * 应用启发式方法来最小化图中的边交叉，并将最佳顺序解决方案设置为每个节点上的顺序属性。
+  *
+  * 先决条件：
+  * 1。graph必须是DAG
+  * 2。graph nodes必须具有“rank”属性
+  * 3。graph edges必须具有“weight”属性
+  *
+  * 后置条件：
+  * 1。graph nodes将具有基于算法结果的“order”属性。
+  */
   time("    order", () => {
     order(g, opts?.keepNodeOrder);
   });
@@ -161,9 +175,9 @@ const runLayout = (g: Graph, time: any, opts: any) => {
   time("    reversePoints", () => {
     reversePointsForReversedEdges(g);
   });
-  // time("    acyclic.undo", () => {
-  //   acyclic.undo(g);
-  // });
+  time("    acyclic.undo", () => {
+    acyclic.undo(g);
+  });
 };
 
 /**
